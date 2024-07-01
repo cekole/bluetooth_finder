@@ -1,8 +1,10 @@
 # bluetooth_finder
 
-A new Flutter project.
+A flutter project that establishes a bluetooth connection with devices nearby and show information of the devices
 
 ## Getting Started
+
+Running this project needs an actual device for the use of bluetooth connection. flutter_blue package uses bluetooth access but in simulators it is not granted to access it.
 
 This project is a starting point for a Flutter application.
 
