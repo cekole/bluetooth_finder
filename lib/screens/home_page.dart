@@ -1,13 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:bluetooth_finder/constants/colors.dart';
 import 'package:bluetooth_finder/providers/bluetooth_provider.dart';
 import 'package:bluetooth_finder/screens/device_detail_page.dart';
 import 'package:bluetooth_finder/screens/previously_connected_page.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -24,10 +24,7 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(
-        seconds: 1,
-        milliseconds: 500,
-      ),
+      duration: Duration(seconds: 1, milliseconds: 500),
     )..repeat(reverse: true);
     _colorTween = ColorTween(begin: Colors.black, end: kPrimaryColor);
   }
@@ -48,7 +45,7 @@ class _HomePageState extends State<HomePage>
       body: SafeArea(
         child: ListView(
           children: [
-            //Previously connected devices
+            // Previously connected devices
             Container(
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.1),
@@ -114,6 +111,7 @@ class _HomePageState extends State<HomePage>
               ),
             ),
             SizedBox(height: MediaQuery.of(context).size.height / 12),
+            // Scanning and discovered devices
             StreamBuilder<List<ScanResult>>(
               stream: Provider.of<BluetoothProvider>(context).getScanResults(),
               builder: (context, snapshot) {
@@ -151,9 +149,12 @@ class _HomePageState extends State<HomePage>
                   );
                 }
                 return ListView.builder(
-                  itemCount: snapshot.data?.length,
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
-                    return GestureDetector(
+                    final device = snapshot.data![index].device;
+                    return ListTile(
                       onTap: () {
                         Navigator.push(
                           context,
@@ -161,7 +162,7 @@ class _HomePageState extends State<HomePage>
                             transitionDuration:
                                 const Duration(milliseconds: 250),
                             pageBuilder: (context, _, __) => DeviceDetail(
-                              device: snapshot.data![index].device,
+                              device: device,
                             ),
                             transitionsBuilder: (context, animation, _, child) {
                               return FadeTransition(
@@ -172,27 +173,26 @@ class _HomePageState extends State<HomePage>
                           ),
                         );
                       },
-                      child: ListTile(
-                        title: Text(
-                          snapshot.data![index].device.name.isEmpty
-                              ? 'Unknown Device'
-                              : snapshot.data![index].device.name,
-                        ),
-                        subtitle:
-                            Text(snapshot.data![index].device.id.toString()),
+                      title: Text(
+                        device.name.isEmpty ? 'Unknown Device' : device.name,
                       ),
+                      subtitle: Text(device.id.toString()),
                     );
                   },
                 );
               },
             ),
             SizedBox(height: 16),
+            // Scan control button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: ElevatedButton(
                 onPressed: () {
-                  Provider.of<BluetoothProvider>(context, listen: false)
-                      .scanDevices();
+                  _isScanning
+                      ? Provider.of<BluetoothProvider>(context, listen: false)
+                          .stopScan()
+                      : Provider.of<BluetoothProvider>(context, listen: false)
+                          .scanDevices();
 
                   setState(() {
                     _isScanning = !_isScanning;

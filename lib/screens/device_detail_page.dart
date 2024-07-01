@@ -53,21 +53,26 @@ class DeviceDetail extends StatelessWidget {
               ],
             ),
           ),
-          //connect and disconnect buttons in a row
           Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  device.connect();
-                },
-                child: Text('Connect'),
+              Visibility(
+                visible: !device.isConnected,
+                child: ElevatedButton(
+                  onPressed: () {
+                    device.connect();
+                  },
+                  child: Text('Connect'),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  device.disconnect();
-                },
-                child: Text('Disconnect'),
+              SizedBox(height: 16),
+              Visibility(
+                visible: device.isConnected,
+                child: ElevatedButton(
+                  onPressed: () {
+                    device.disconnect();
+                  },
+                  child: Text('Disconnect'),
+                ),
               ),
             ],
           ),
