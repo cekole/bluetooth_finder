@@ -1,4 +1,3 @@
-import 'package:bluetooth_finder/constants/colors.dart';
 import 'package:bluetooth_finder/providers/bluetooth_provider.dart';
 import 'package:bluetooth_finder/screens/device_detail_page.dart';
 import 'package:flutter/material.dart';
@@ -18,13 +17,20 @@ class PreviouslyConnectedPage extends StatelessWidget {
       body: SafeArea(
         child: Consumer<BluetoothProvider>(
           builder: (context, bluetoothProvider, _) {
-            List<BluetoothDevice> devices = bluetoothProvider.devices;
+            List<BluetoothDevice> devices =
+                bluetoothProvider.previouslyConnectedDevices;
+
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               separatorBuilder: (context, index) => const Divider(),
               itemCount: devices.length,
               itemBuilder: (context, index) => ListTile(
-                title: Text(devices[index].remoteId.str),
+                title: Text(
+                  devices[index].platformName.isEmpty
+                      ? 'Unknown'
+                      : devices[index].platformName,
+                ),
+                subtitle: Text(devices[index].remoteId.str),
                 trailing: const Icon(Icons.arrow_forward_ios),
                 onTap: () {
                   Navigator.push(
@@ -33,8 +39,7 @@ class PreviouslyConnectedPage extends StatelessWidget {
                       transitionDuration: const Duration(milliseconds: 250),
                       pageBuilder: (context, animation, secondaryAnimation) =>
                           DeviceDetail(
-                        device: Provider.of<BluetoothProvider>(context)
-                            .devices[index],
+                        device: devices[index],
                       ),
                       transitionsBuilder: (context, animation, _, child) {
                         return FadeTransition(

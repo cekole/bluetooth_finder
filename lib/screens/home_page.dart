@@ -1,9 +1,9 @@
+import 'package:bluetooth_finder/widgets/previously_connected_devices.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:bluetooth_finder/constants/colors.dart';
 import 'package:bluetooth_finder/providers/bluetooth_provider.dart';
 import 'package:bluetooth_finder/screens/device_detail_page.dart';
-import 'package:bluetooth_finder/screens/previously_connected_page.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -45,73 +45,8 @@ class _HomePageState extends State<HomePage>
       body: SafeArea(
         child: ListView(
           children: [
-            // Previously connected devices
-            Container(
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.1),
-              ),
-              margin: const EdgeInsets.all(16),
-              child: ExpansionTile(
-                title: Text('Previously Connected Devices'),
-                children: [
-                  ...Provider.of<BluetoothProvider>(context)
-                      .devices
-                      .take(3)
-                      .map(
-                        (device) => ListTile(
-                          trailing: Icon(Icons.info_outline),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              PageRouteBuilder(
-                                transitionDuration:
-                                    const Duration(milliseconds: 250),
-                                pageBuilder: (context, _, __) => DeviceDetail(
-                                  device: device,
-                                ),
-                                transitionsBuilder:
-                                    (context, animation, _, child) {
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                          title: Text(device.remoteId.str),
-                        ),
-                      )
-                      .toList(),
-                  ListTile(
-                    trailing: Text(
-                      'View All',
-                      style: TextStyle(
-                        fontSize: 14,
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          transitionDuration: const Duration(milliseconds: 250),
-                          pageBuilder: (context, _, __) =>
-                              PreviouslyConnectedPage(),
-                          transitionsBuilder: (context, animation, _, child) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
+            PreviouslyConnectedDevices(),
             SizedBox(height: MediaQuery.of(context).size.height / 12),
-            // Scanning and discovered devices
             StreamBuilder<List<ScanResult>>(
               stream: Provider.of<BluetoothProvider>(context).getScanResults(),
               builder: (context, snapshot) {
@@ -174,16 +109,17 @@ class _HomePageState extends State<HomePage>
                         );
                       },
                       title: Text(
-                        device.name.isEmpty ? 'Unknown Device' : device.name,
+                        device.platformName.isEmpty
+                            ? 'Unknown Device'
+                            : device.platformName,
                       ),
-                      subtitle: Text(device.id.toString()),
+                      subtitle: Text(device.remoteId.toString()),
                     );
                   },
                 );
               },
             ),
             SizedBox(height: 16),
-            // Scan control button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: ElevatedButton(
@@ -191,7 +127,7 @@ class _HomePageState extends State<HomePage>
                   _isScanning
                       ? Provider.of<BluetoothProvider>(context, listen: false)
                           .stopScan()
-                      : Provider.of<BluetoothProvider>(context, listen: false)
+                      : Provider.of<BluetoothProvider>(context, listen: true)
                           .scanDevices();
 
                   setState(() {

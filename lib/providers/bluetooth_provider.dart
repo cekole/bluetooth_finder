@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothProvider with ChangeNotifier {
   final List<BluetoothDevice> _devices = [];
+  final List<BluetoothDevice> _previouslyConnectedDevices = [];
   static const String _keyPrefix = 'device_';
 
   BluetoothProvider() {
@@ -15,25 +15,37 @@ class BluetoothProvider with ChangeNotifier {
     return [..._devices];
   }
 
-  Future<void> scanDevices() async {
-    var status = await Permission.bluetooth.status;
-    if (!status.isGranted) {
-      print('Bluetooth permission not granted');
-      status = await Permission.bluetooth.request();
-    }
+  List<BluetoothDevice> get previouslyConnectedDevices {
+    return [..._previouslyConnectedDevices];
+  }
 
-    if (status.isGranted) {
-      print('Scanning for devices...');
-      FlutterBluePlus.startScan(timeout: Duration(seconds: 10));
-
-      FlutterBluePlus.scanResults.listen((results) {
-        print('Found ${results.length} devices');
-        _devices.clear();
-        _devices.addAll(results.map((result) => result.device));
-        _saveDevicesToSharedPreferences();
+  void addDevice(BluetoothDevice device) {
+    if (!_previouslyConnectedDevices.contains(device)) {
+      _previouslyConnectedDevices.add(device);
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString(
+          '$_keyPrefix${_previouslyConnectedDevices.length - 1}_id',
+          device.remoteId.str,
+        );
       });
-      notifyListeners();
     }
+    notifyListeners();
+  }
+
+  Future<void> scanDevices() async {
+    print('Scanning for devices...');
+    FlutterBluePlus.startScan(timeout: Duration(seconds: 10));
+
+    FlutterBluePlus.scanResults.listen((results) {
+      for (ScanResult result in results) {
+        BluetoothDevice device =
+            BluetoothDevice(remoteId: result.device.remoteId);
+        if (!_devices.contains(device)) {
+          _devices.add(device);
+        }
+      }
+      notifyListeners();
+    });
   }
 
   void stopScan() {
@@ -51,40 +63,11 @@ class BluetoothProvider with ChangeNotifier {
 
   Future<void> _initDevicesFromSharedPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    int deviceIndex = await _getNextDeviceIndex(prefs);
-    for (int i = 0; i < deviceIndex; i++) {
-      String? deviceId = prefs.getString('$_keyPrefix${i}_id');
-      if (deviceId != null) {
-        BluetoothDevice device =
-            BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
-        _devices.add(device);
-      }
-    }
-  }
-
-  Future<void> _saveDevicesToSharedPreferences() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    Set<String> savedDeviceIds =
-        prefs.getKeys().where((key) => key.startsWith(_keyPrefix)).toSet();
-
-    for (int i = 0; i < _devices.length; i++) {
-      BluetoothDevice device = _devices[i];
-      String deviceIdKey = '$_keyPrefix${i}_id';
-      await prefs.setString(deviceIdKey, device.remoteId.id);
-      savedDeviceIds.remove(deviceIdKey);
-    }
-
-    for (String deviceIdKey in savedDeviceIds) {
-      await prefs.remove(deviceIdKey);
-    }
-  }
-
-  static Future<int> _getNextDeviceIndex(SharedPreferences prefs) async {
-    int deviceIndex = 0;
-    while (prefs.containsKey('$_keyPrefix${deviceIndex}_id')) {
-      deviceIndex++;
-    }
-    return deviceIndex;
+    prefs.getKeys().where((key) => key.startsWith(_keyPrefix)).forEach((key) {
+      String id = prefs.getString(key)!;
+      _previouslyConnectedDevices
+          .add(BluetoothDevice(remoteId: DeviceIdentifier(id)));
+    });
+    notifyListeners();
   }
 }
